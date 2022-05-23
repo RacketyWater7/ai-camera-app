@@ -1,8 +1,12 @@
 .container {
   position: relative;
-  width: 93%;
+  width: 84%;
   height: 100%;
   overflow: hidden;
+}
+.webcam > video {
+  -webkit-transform: scaleX(-1);
+  transform: scaleX(-1);
 }
 .overlay-image {
   position: absolute;
@@ -14,11 +18,34 @@
   height: 100%;
   z-index: 1;
 }
-.photo-button {
+.btn-photo {
   width: 100px;
   height: 100px;
   top: 40%;
-  left: 96.5%;
+  left: 91%;
+  margin-top: -50px;
+  margin-left: -50px;
+  position: absolute;
+  z-index: 2;
+  cursor: pointer;
+}
+.btn-record-video {
+  width: 100px;
+  height: 50px;
+  top: 56.5%;
+  left: 91%;
+  margin-top: -50px;
+  margin-left: -50px;
+  position: absolute;
+  z-index: 2;
+  cursor: pointer;
+}
+
+.btn-download-video {
+  width: 100px;
+  height: 50px;
+  top: 66.5%;
+  left: 91%;
   margin-top: -50px;
   margin-left: -50px;
   position: absolute;
@@ -46,24 +73,24 @@
   border: 0.5em solid #fff;
   opacity: 0.8;
 }
-.photo-button .circle,
-.photo-button .ring {
+.btn-photo .circle,
+.btn-photo .ring {
   transition: all 0.25s;
 }
-.photo-button:hover .circle {
+.btn-photo:hover .circle {
   opacity: 1;
 }
-.photo-button:active .ring {
+.btn-photo:active .ring {
   opacity: 1;
 }
-.photo-button:active .circle {
+.btn-photo:active .circle {
   opacity: 0.5;
 }
 
 .features {
   position: absolute;
   top: 20%;
-  left: 94%;
+  left: 89%;
   z-index: 2;
   display: flex;
   flex-direction: column;
@@ -78,8 +105,8 @@
 
 .frames {
   position: absolute;
-  top: 50%;
-  left: 93.5%;
+  top: 75%;
+  left: 88.1%;
   z-index: 2;
   overflow-y: scroll;
   display: flex;
