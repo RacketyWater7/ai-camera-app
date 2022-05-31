@@ -1,8 +1,9 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import Webcam from "react-webcam";
 import html2canvas from "html2canvas";
 import * as tf from "@tensorflow/tfjs";
-import draw from "../../utilities";
+import * as facemesh from "@tensorflow-models/face-landmarks-detection";
+import { drawMesh } from "../../utilities";
 import "./Camera.css";
 
 tf.getBackend();
@@ -30,20 +31,25 @@ const Camera = () => {
   const webcamRef = useRef(null);
   const mediaRecorderRef = React.useRef(null);
   const canvasRef = useRef(null);
+  const captureRef = useRef(null);
   const squareCanvasRef = useRef(null);
-  const blazeface = require("@tensorflow-models/blazeface");
+  const propRef = useRef(null);
   const [selectedFeature, setSelectedFeature] = useState(1);
   const [selectedFrame, setSelectedFrame] = useState(frames[0]);
   const [recordedChunks, setRecordedChunks] = React.useState([]);
   const [capturing, setCapturing] = React.useState(false);
 
+  useEffect(() => {
+    runFacemesh();
+  }, []);
+
   const capture = React.useCallback(() => {
-    html2canvas(canvasRef.current, {
+    html2canvas(captureRef.current, {
       useCORS: true,
       allowTaint: false,
       scale: 1,
-      width: canvasRef.current.width,
-      height: canvasRef.current.height,
+      width: captureRef.current.width,
+      height: captureRef.current.height,
       logging: true,
       backgroundColor: "transparent",
     }).then((canvas) => {
@@ -51,7 +57,7 @@ const Camera = () => {
       // console.log(img);
       window.open(img);
     });
-  }, [canvasRef]);
+  }, [captureRef]);
 
   const handleStartCaptureClick = React.useCallback(() => {
     let b = [1, 2, 3];
@@ -98,94 +104,96 @@ const Camera = () => {
     }
   }, [recordedChunks]);
 
-  const handleDownloadBoomerang = React.useCallback(() => {
-    if (recordedChunks.length) {
-      // let frames = [];
-      // frames = recordedChunks;
-      // frames = [...frames, ...frames.slice(0).reverse()];
-
-      const reversedChunks = [];
-      // // for (let i = 0; i < recordedChunks.length; i++) {
-      // //   const chunk = recordedChunks[i];
-      // //   boomerang.push(boomerangChunk);
-      // // }
-      // // push reverse of boomerang in boomerang
-      for (let i = recordedChunks.length - 2; i >= 0; i--) {
-        reversedChunks.push(recordedChunks[i]);
-      }
-      const boomerang = recordedChunks.concat(reversedChunks);
-
-      const blob = new Blob(boomerang, {
-        type: "video/webm",
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      document.body.appendChild(a);
-      a.style = "display: none";
-      a.href = url;
-      a.download = "react-webcam-stream-capture.webm";
-      a.click();
-      window.URL.revokeObjectURL(url);
-      setRecordedChunks([]);
-    }
-  }, [recordedChunks]);
-
-  // detection area
-  const runFacedetection = async () => {
-    const model = await blazeface.load();
-    console.log("FaceDetection Model is Loaded..");
+  //  Load posenet
+  const runFacemesh = async () => {
+    // const model = facemesh.SupportedModels.MediaPipeFaceMesh;
+    // const detectorConfig = {
+    //   runtime: "tfjs", // or 'tfjs'
+    //   solutionPath: "https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh",
+    // };
+    // const detector = await facemesh.createDetector(model, detectorConfig);
+    // OLD MODEL
+    // const net = await facemesh.load({
+    //   inputResolution: { width: 640, height: 480 },
+    //   scale: 0.8,
+    // });
+    // NEW MODEL
+    const net = await facemesh.load(
+      facemesh.SupportedPackages.mediapipeFacemesh
+    );
     setInterval(() => {
-      detect(model);
-    }, 100);
+      detect(net);
+    }, 10);
   };
 
-  const returnTensors = false;
-
-  const detect = async (model) => {
+  const detect = async (net) => {
     if (
       typeof webcamRef.current !== "undefined" &&
       webcamRef.current !== null &&
       webcamRef.current.video.readyState === 4
     ) {
-      // Get video properties
+      // Get Video Properties
       const video = webcamRef.current.video;
       const videoWidth = webcamRef.current.video.videoWidth;
       const videoHeight = webcamRef.current.video.videoHeight;
-      // const videoWidth = canvasRef.current.width;
-      // const videoHeight = canvasRef.current.height;
 
-      //Set video height and width
+      // Set video width
       webcamRef.current.video.width = videoWidth;
       webcamRef.current.video.height = videoHeight;
 
-      //Set canvas height and width
-      squareCanvasRef.current.width = videoWidth;
-      squareCanvasRef.current.height = videoHeight;
+      // Set canvas width
+      canvasRef.current.width = videoWidth;
+      canvasRef.current.height = videoHeight;
 
-      // Make detections
+      // Make Detections
+      // OLD MODEL
+      //       const face = await net.estimateFaces(video);
+      // NEW MODEL
+      // video.addEventListener("loadeddata", async (e) => {
+      const face = await net.estimateFaces({ input: video });
 
-      const prediction = await model.estimateFaces(video, returnTensors);
+      // console.log(face[0].annotations.lipsUpperOuter);
+      // draw mustache1.png on the lipsUpperOuter coordinates
+      // make an image with src = "mustache1.png"
+      // draw the image on the canvas
+      const img = propRef.current;
+      // img.style.width = "1000px";
 
-      // console.log(prediction);
+      // img.src = "/images/mustache1.png";
+      img.style.zIndex = "10";
+      // reduce the size of the image to fit the lipsUpperOuter coordinates
+      img.style.width = `${
+        face[0].annotations.lipsUpperOuter[10][0] -
+        face[0].annotations.lipsUpperOuter[0][0] +
+        20
+      }px`;
+      img.style.height = `${
+        face[0].annotations.lipsUpperOuter[10][1] -
+        face[0].annotations.lipsUpperOuter[0][1] +
+        20
+      }px`;
+      img.style.top = `${face[0].annotations.lipsUpperOuter[0][1] - 20}px`;
+      img.style.left = `${face[0].annotations.lipsUpperOuter[0][0]}px`;
+      //  0 be start and 10 be end
+      // const ctx = canvasRef.current.getContext("2d");
+      // ctx.drawImage(
+      //   img,
+      //   face[0].annotations.lipsUpperOuter[0][0],
+      //   face[0].annotations.lipsUpperOuter[0][1]
+      // );
 
-      const ctx = squareCanvasRef.current.getContext("2d");
-      // draw an image and give it src as /images/ann1.png
-      ctx.drawImage(
-        video,
-        0,
-        0,
-        squareCanvasRef.current.width,
-        squareCanvasRef.current.height
-      );
-
-      draw(prediction, ctx);
+      // Get canvas context
+      // const ctx = canvasRef.current.getContext("2d");
+      // requestAnimationFrame(() => {
+      //   drawMesh(face, ctx);
+      // });
+      // });
     }
   };
 
-  // runFacedetection();
   return (
     <>
-      <div ref={canvasRef} className="container">
+      <div ref={captureRef} className="container">
         <Webcam
           audio={false}
           height={"100%"}
@@ -195,6 +203,29 @@ const Camera = () => {
           videoConstraints={videoConstraints}
           className="webcam"
         />
+        <canvas
+          ref={canvasRef}
+          style={{
+            position: "absolute",
+            // marginLeft: "auto",
+            // marginRight: "auto",
+            left: 0,
+            right: 0,
+
+            textAlign: "center",
+            zindex: 9,
+            width: "100%",
+            height: "100%",
+          }}
+        />
+        {selectedFeature === 1 && (
+          <img
+            className="overlay-props"
+            src={`/images/mustache1.png`}
+            alt="mustache"
+            ref={propRef}
+          />
+        )}
         {selectedFeature === 0 && (
           <img
             className="overlay-image"
@@ -220,13 +251,6 @@ const Camera = () => {
           {" "}
           <button className="btn-download-video" onClick={handleDownload}>
             Download
-          </button>
-          <button
-            style={{ top: "75%" }}
-            className="btn-download-video"
-            onClick={handleDownloadBoomerang}
-          >
-            Download Boomerang
           </button>
         </>
       )}

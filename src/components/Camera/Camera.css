@@ -8,6 +8,10 @@
   -webkit-transform: scaleX(-1);
   transform: scaleX(-1);
 }
+.webcam > canvas {
+  -webkit-transform: scaleX(-1);
+  transform: scaleX(-1);
+}
 .overlay-image {
   position: absolute;
   top: 0;
@@ -16,6 +20,12 @@
   bottom: 0;
   width: 100%;
   height: 100%;
+  z-index: 1;
+}
+.overlay-props {
+  position: absolute;
+  top: 0;
+  left: 0;
   z-index: 1;
 }
 .btn-photo {
@@ -105,7 +115,7 @@
 
 .frames {
   position: absolute;
-  top: 75%;
+  top: 60%;
   left: 88.1%;
   z-index: 2;
   overflow-y: scroll;
