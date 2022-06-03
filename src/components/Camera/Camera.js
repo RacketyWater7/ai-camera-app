@@ -3,8 +3,9 @@ import Webcam from "react-webcam";
 import html2canvas from "html2canvas";
 import * as tf from "@tensorflow/tfjs";
 import * as facemesh from "@tensorflow-models/face-landmarks-detection";
-import { drawMesh } from "../../utilities";
+// import { drawMesh } from "../../utilities";
 import "./Camera.css";
+import { Loader } from "../common/Loader";
 
 tf.getBackend();
 
@@ -14,6 +15,7 @@ const videoConstraints = {
   facingMode: "user",
 };
 const frames = [
+  "none",
   "ann1.png",
   "ann2.png",
   "cm.png",
@@ -25,6 +27,16 @@ const frames = [
   "party2.png",
   "party3.png",
   "party4.png",
+  "party5.png",
+];
+const imageProps = [
+  "none",
+  "mustache1.png",
+  "glasses1.png",
+  "glasses2.png",
+  "tie1.png",
+  "tie2.png",
+  "tie3.png",
 ];
 
 const Camera = () => {
@@ -32,16 +44,23 @@ const Camera = () => {
   const mediaRecorderRef = React.useRef(null);
   const canvasRef = useRef(null);
   const captureRef = useRef(null);
-  const squareCanvasRef = useRef(null);
+  // const squareCanvasRef = useRef(null);
   const propRef = useRef(null);
+  const selectedPropRef = useRef(null);
   const [selectedFeature, setSelectedFeature] = useState(1);
   const [selectedFrame, setSelectedFrame] = useState(frames[0]);
+  const [selectedImageProp, setSelectedImageProp] = useState(imageProps[0]);
   const [recordedChunks, setRecordedChunks] = React.useState([]);
   const [capturing, setCapturing] = React.useState(false);
+  const [loader, setLoader] = useState(false);
+  // const [faces, setFaces] = useState(0);
 
   useEffect(() => {
     runFacemesh();
   }, []);
+  useEffect(() => {
+    selectedPropRef.current = selectedImageProp;
+  }, [selectedImageProp]);
 
   const capture = React.useCallback(() => {
     html2canvas(captureRef.current, {
@@ -60,9 +79,6 @@ const Camera = () => {
   }, [captureRef]);
 
   const handleStartCaptureClick = React.useCallback(() => {
-    let b = [1, 2, 3];
-    b = [...b, ...b.slice(0).reverse()];
-    console.log(b);
     setRecordedChunks([]);
     setCapturing(true);
     mediaRecorderRef.current = new MediaRecorder(webcamRef.current.stream, {
@@ -117,6 +133,7 @@ const Camera = () => {
     //   inputResolution: { width: 640, height: 480 },
     //   scale: 0.8,
     // });
+    setLoader(true);
     // NEW MODEL
     const net = await facemesh.load(
       facemesh.SupportedPackages.mediapipeFacemesh
@@ -126,7 +143,7 @@ const Camera = () => {
     }, 10);
   };
 
-  const detect = async (net) => {
+  const detect = async (net, imageProp) => {
     if (
       typeof webcamRef.current !== "undefined" &&
       webcamRef.current !== null &&
@@ -145,55 +162,139 @@ const Camera = () => {
       canvasRef.current.width = videoWidth;
       canvasRef.current.height = videoHeight;
 
-      // Make Detections
-      // OLD MODEL
-      //       const face = await net.estimateFaces(video);
-      // NEW MODEL
+      // Making Detections
       // video.addEventListener("loadeddata", async (e) => {
       const face = await net.estimateFaces({ input: video });
+      setLoader(false);
+      if (face[0] && propRef.current !== null) {
+        // setFaces(face.length);
+        // console.log("faces:", face);
+        const img = propRef.current;
+        img.style.zIndex = "1";
+        img.style.visibility = "visible";
+        switch (selectedPropRef.current) {
+          case "mustache1.png":
+            // console.log("im here bamby", selectedPropRef.current);
+            img.style.width = `${
+              face[0].annotations.lipsUpperOuter[10][0] -
+              face[0].annotations.lipsUpperOuter[0][0] +
+              20
+            }px`;
+            img.style.height = `${
+              face[0].annotations.lipsUpperOuter[10][1] -
+              face[0].annotations.lipsUpperOuter[0][1] +
+              20
+            }px`;
+            img.style.top = `${
+              face[0].annotations.lipsUpperOuter[0][1] - 25
+            }px`;
+            img.style.left = `${
+              face[0].annotations.lipsUpperOuter[0][0] - 10
+            }px`;
+            break;
+          case "glasses1.png":
+            img.style.width = `${
+              face[0].annotations.leftEyeUpper0[6][0] -
+              face[0].annotations.rightEyeUpper0[6][0] +
+              250
+            }px`;
+            img.style.height = `${
+              face[0].annotations.rightEyeLower2[0][1] -
+              face[0].annotations.rightEyeUpper2[0][1] +
+              200
+            }px`;
+            img.style.top = `${
+              face[0].annotations.rightEyeUpper2[0][1] - 95
+            }px`;
+            img.style.left = `${
+              face[0].annotations.rightEyeUpper0[6][0] - 125
+            }px`;
+            break;
+          case "glasses2.png":
+            // console.log("im in 2nd bamby", selectedPropRef.current);
+            img.style.width = `${
+              face[0].annotations.leftEyeUpper0[6][0] -
+              face[0].annotations.rightEyeUpper0[6][0] +
+              150
+            }px`;
+            img.style.height = `${
+              face[0].annotations.rightEyeLower2[0][1] -
+              face[0].annotations.rightEyeUpper2[0][1] +
+              30
+            }px`;
+            img.style.top = `${
+              face[0].annotations.rightEyeUpper2[0][1] - 20
+            }px`;
+            img.style.left = `${
+              face[0].annotations.rightEyeUpper0[6][0] - 75
+            }px`;
+            break;
+          case "tie1.png":
+            img.style.width = `${
+              face[0].annotations.leftEyeUpper0[6][0] -
+              face[0].annotations.rightEyeUpper0[6][0] +
+              150
+            }px`;
+            img.style.height = `${
+              face[0].annotations.rightEyeLower2[0][1] -
+              face[0].annotations.rightEyeUpper2[0][1] +
+              300
+            }px`;
+            img.style.top = `${face[0].annotations.silhouette[19][1] + 20}px`;
+            img.style.left = `${face[0].annotations.silhouette[0][0] - 90}px`;
+            break;
+          case "tie2.png":
+            img.style.width = `${
+              face[0].annotations.leftEyeUpper0[6][0] -
+              face[0].annotations.rightEyeUpper0[6][0] +
+              100
+            }px`;
+            img.style.height = `${
+              face[0].annotations.rightEyeLower2[0][1] -
+              face[0].annotations.rightEyeUpper2[0][1] +
+              100
+            }px`;
+            img.style.top = `${face[0].annotations.silhouette[19][1] + 20}px`;
+            img.style.left = `${face[0].annotations.silhouette[0][0] - 80}px`;
+            break;
+          case "tie3.png":
+            // console.log("im in 2nd bamby", selectedPropRef.current);
+            img.style.width = `${
+              face[0].annotations.leftEyeUpper0[6][0] -
+              face[0].annotations.rightEyeUpper0[6][0] +
+              175
+            }px`;
+            img.style.height = `${
+              face[0].annotations.rightEyeLower2[0][1] -
+              face[0].annotations.rightEyeUpper2[0][1] +
+              400
+            }px`;
+            img.style.top = `${face[0].annotations.silhouette[19][1]}px`;
+            img.style.left = `${face[0].annotations.silhouette[0][0] - 90}px`;
+            break;
 
-      // console.log(face[0].annotations.lipsUpperOuter);
-      // draw mustache1.png on the lipsUpperOuter coordinates
-      // make an image with src = "mustache1.png"
-      // draw the image on the canvas
-      const img = propRef.current;
-      // img.style.width = "1000px";
+          default:
+            break;
+        }
 
-      // img.src = "/images/mustache1.png";
-      img.style.zIndex = "10";
-      // reduce the size of the image to fit the lipsUpperOuter coordinates
-      img.style.width = `${
-        face[0].annotations.lipsUpperOuter[10][0] -
-        face[0].annotations.lipsUpperOuter[0][0] +
-        20
-      }px`;
-      img.style.height = `${
-        face[0].annotations.lipsUpperOuter[10][1] -
-        face[0].annotations.lipsUpperOuter[0][1] +
-        20
-      }px`;
-      img.style.top = `${face[0].annotations.lipsUpperOuter[0][1] - 20}px`;
-      img.style.left = `${face[0].annotations.lipsUpperOuter[0][0]}px`;
-      //  0 be start and 10 be end
-      // const ctx = canvasRef.current.getContext("2d");
-      // ctx.drawImage(
-      //   img,
-      //   face[0].annotations.lipsUpperOuter[0][0],
-      //   face[0].annotations.lipsUpperOuter[0][1]
-      // );
-
-      // Get canvas context
-      // const ctx = canvasRef.current.getContext("2d");
-      // requestAnimationFrame(() => {
-      //   drawMesh(face, ctx);
-      // });
-      // });
+        // Drawing Mesh
+        // const ctx = canvasRef.current.getContext("2d");
+        // requestAnimationFrame(() => {
+        //   drawMesh(face, ctx);
+        // });
+        // });
+      } else {
+        if (propRef.current !== null) {
+          propRef.current.style.visibility = "hidden";
+        }
+      }
     }
   };
 
   return (
     <>
       <div ref={captureRef} className="container">
+        <Loader display={loader} />
         <Webcam
           audio={false}
           height={"100%"}
@@ -218,18 +319,27 @@ const Camera = () => {
             height: "100%",
           }}
         />
-        {selectedFeature === 1 && (
+
+        {/* // make array with length equal to the number of faces
+          // and fill it with false
+
+            // faces > 0 &&
+            // for(let i = 0; i < faces; i++) { */}
+        {selectedImageProp !== "none" && (
           <img
+            // key={i}
             className="overlay-props"
-            src={`/images/mustache1.png`}
-            alt="mustache"
+            src={`/images/props/${selectedImageProp}`}
+            alt={selectedImageProp}
             ref={propRef}
           />
         )}
-        {selectedFeature === 0 && (
+
+        {/* // } */}
+        {selectedFrame !== "none" && (
           <img
             className="overlay-image"
-            src={`/images/${selectedFrame}`}
+            src={`/images/frames/${selectedFrame}`}
             alt={selectedFrame}
           />
         )}
@@ -273,34 +383,64 @@ const Camera = () => {
       {selectedFeature === 0 && (
         <div className="frames">
           {frames.map((frame, index) => (
-            <img
-              key={index}
-              className="frame"
-              src={`/images/${frame}`}
-              alt={frame.split(".")[0]}
-              onClick={() => {
-                setSelectedFrame(frame);
-              }}
-            />
+            <div key={index}>
+              {frame === "none" ? (
+                <div
+                  style={{ textAlign: "center" }}
+                  onClick={() => {
+                    setSelectedFrame(frame);
+                  }}
+                  className="frame"
+                >
+                  None
+                </div>
+              ) : (
+                <img
+                  key={index}
+                  className="frame"
+                  src={`/images/frames/${frame}`}
+                  alt={frame.split(".")[0]}
+                  onClick={() => {
+                    setSelectedFrame(frame);
+                  }}
+                />
+              )}
+            </div>
           ))}
         </div>
       )}
-
-      <canvas
-        ref={squareCanvasRef}
-        style={{
-          position: "absolute",
-          marginLeft: "auto",
-          marginRight: "auto",
-          top: 100,
-          left: 0,
-          right: 80,
-          textAlign: "center",
-          zIndex: 9,
-          width: 640,
-          height: 480,
-        }}
-      />
+      {selectedFeature === 1 && (
+        <div className="frames">
+          {imageProps.map((image, index) => (
+            <div key={index}>
+              {image === "none" ? (
+                <div
+                  style={{
+                    textAlign: "center",
+                  }}
+                  onClick={() => {
+                    setSelectedImageProp(image);
+                  }}
+                  className="frame"
+                >
+                  None
+                </div>
+              ) : (
+                <img
+                  key={index}
+                  className="frame"
+                  src={`/images/props/${image}`}
+                  alt={image.split(".")[0]}
+                  onClick={() => {
+                    setSelectedImageProp(image);
+                    console.log("selectedImageProp", selectedImageProp);
+                  }}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </>
   );
 };
